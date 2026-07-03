@@ -1,4 +1,4 @@
-module budol/gmr-vault
+module github.com/techbudol1/gmr-vault
 
 go 1.25.1
 

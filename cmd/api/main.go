@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"budol/gmr-vault/internal/config"
-	"budol/gmr-vault/internal/httpapi"
-	"budol/gmr-vault/internal/store"
+	"github.com/techbudol1/gmr-vault/internal/config"
+	"github.com/techbudol1/gmr-vault/internal/httpapi"
+	"github.com/techbudol1/gmr-vault/internal/store"
 )
 
 func main() {

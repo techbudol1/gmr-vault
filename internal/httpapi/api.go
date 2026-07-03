@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"budol/gmr-vault/internal/config"
-	"budol/gmr-vault/internal/store"
-	"budol/gmr-vault/internal/vaultcrypto"
+	"github.com/techbudol1/gmr-vault/internal/config"
+	"github.com/techbudol1/gmr-vault/internal/store"
+	"github.com/techbudol1/gmr-vault/internal/vaultcrypto"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
