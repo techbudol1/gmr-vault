@@ -1,128 +1,41 @@
 # GMR Vault
 
-GMR Vault is the self-hosted custody service for GMR Engine.
+GMR Vault is the self-hosted signing service used by GMR Engine. It creates and stores encrypted EVM keys, performs authorized signing in process memory, and returns signatures or signed transactions—not private keys.
 
-It stores encrypted EVM private keys, signs requests in memory, and returns only signatures or signed raw transactions. It does not expose private keys through any API.
+## Security model
 
-## Local Setup
+- Private keys are generated inside Vault.
+- Key material is encrypted with AES-256-GCM before storage in Memgraph.
+- The master key is supplied at runtime through `GMR_VAULT_MASTER_KEY` and must never be committed.
+- Every wallet creation and signing operation is audited.
+- GMR Engine should reach Vault through a private network with a dedicated internal credential.
 
-Start the Vault graph:
+Vault is encrypted server-side custody for the current testnet architecture; it is not an enclave, MPC, or HSM implementation.
+
+## Local development
 
 ```bash
+cp .env.gmr-vault.example .env.gmr-vault
 docker compose up -d gmr-vault-memgraph
-```
-
-Required environment:
-
-```bash
-GMR_VAULT_ADDR=:8091
-GMR_VAULT_INTERNAL_API_KEY=replace-with-32-plus-character-internal-key
-GMR_VAULT_MASTER_KEY=replace-with-32-plus-character-master-key
-GMR_VAULT_MEMGRAPH_URI=bolt://localhost:7690
-```
-
-Run:
-
-```bash
-cd gmr-vault
 go run ./cmd/api
 ```
 
-## API
+Required configuration:
 
-All `/v1` endpoints require:
-
-```text
-X-GMR-Vault-Key: <GMR_VAULT_INTERNAL_API_KEY>
+```env
+GMR_VAULT_ADDR=:8091
+GMR_VAULT_INTERNAL_API_KEY=replace-with-a-strong-internal-key
+GMR_VAULT_MASTER_KEY=replace-with-a-strong-master-key
+GMR_VAULT_MEMGRAPH_URI=bolt://localhost:7690
 ```
 
-### Create Wallet
+## Internal API
 
-```http
-POST /v1/wallets
-```
+All `/v1` endpoints require `X-GMR-Vault-Key`. GMR Engine uses Vault to create project wallets and request message, typed-data, or transaction signatures. The API never returns raw private keys.
 
-```json
-{
-  "projectId": "project-id",
-  "walletType": "server_admin",
-  "metadata": "{}"
-}
-```
+## Production requirements
 
-Returns the wallet address and metadata, never the private key.
-
-### Sign Message
-
-```http
-POST /v1/sign-message
-```
-
-```json
-{
-  "walletId": "vault-wallet-id",
-  "message": "hello",
-  "format": "text"
-}
-```
-
-### Sign Typed Data
-
-```http
-POST /v1/sign-typed-data
-```
-
-```json
-{
-  "walletId": "vault-wallet-id",
-  "typedData": {
-    "types": {},
-    "primaryType": "Permit",
-    "domain": {},
-    "message": {}
-  }
-}
-```
-
-### Sign Transaction
-
-```http
-POST /v1/sign-transaction
-```
-
-```json
-{
-  "walletId": "vault-wallet-id",
-  "transaction": {
-    "chainId": "421614",
-    "nonce": 0,
-    "to": "0x...",
-    "value": "0",
-    "data": "0x",
-    "gasLimit": 21000,
-    "maxFeePerGas": "100000000",
-    "maxPriorityFeePerGas": "100000000"
-  }
-}
-```
-
-Returns `rawTransaction` and `transactionHash`.
-
-## Security Model
-
-- Private keys are generated inside Vault.
-- Keys are encrypted with AES-256-GCM before Memgraph storage.
-- The master key comes from `GMR_VAULT_MASTER_KEY` and must never be committed.
-- Signing decrypts only in process memory.
-- Every wallet creation and signing action writes an audit log.
-- GMR Engine should call Vault over a private network in production.
-
-## Current Limits
-
-This MVP is encrypted self-custody, not enclave custody. To harden further:
-
-- Move `GMR_VAULT_MASTER_KEY` into KMS/HSM.
-- Deploy Vault in an isolated private subnet.
-- Add mTLS between Engine and Vault.
-- Add per-wallet policy checks and approval workflows.
-- Add key rotation and envelope re-encryption.
+- Place the master key in a managed KMS/HSM or equivalent secret-management system.
+- Isolate Vault on a private network and use mTLS or equivalent service authentication.
+- Enforce per-wallet signing policies, approval controls, monitoring, backup, and key-rotation procedures.
+- Do not expose Vault directly to browsers or public internet traffic.
